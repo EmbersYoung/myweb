@@ -4,10 +4,6 @@ import React, { useState, useEffect } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemText from '@mui/material/ListItemText'
-import IconButton from '@mui/material/IconButton'
 import Paper from '@mui/material/Paper'
 import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
@@ -19,12 +15,21 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
+import IconButton from '@mui/material/IconButton'
 import Checkbox from '@mui/material/Checkbox'
+import Fab from '@mui/material/Fab'
+import Divider from '@mui/material/Divider'
+import Alert from '@mui/material/Alert'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import AddIcon from '@mui/icons-material/Add'
-import Alert from '@mui/material/Alert'
-import { format } from 'date-fns'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
+import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
+import { format, isToday, isTomorrow, addDays } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Todo {
   id: string
@@ -64,7 +69,7 @@ export default function TodosPage() {
         return
       }
 
-      setTodos(data.todos)
+      setTodos(data.todos || [])
     } catch (err) {
       setError('获取待办事项失败')
     } finally {
@@ -91,9 +96,15 @@ export default function TodosPage() {
   const handleCloseDialog = () => {
     setDialogOpen(false)
     setEditingTodo(null)
+    setError('')
   }
 
   const handleSubmit = async () => {
+    if (!formData.title.trim()) {
+      setError('请输入标题')
+      return
+    }
+
     setError('')
     try {
       const url = editingTodo ? `/api/todos/${editingTodo.id}` : '/api/todos'
@@ -152,126 +163,333 @@ export default function TodosPage() {
 
   const filteredTodos = todos.filter(todo => {
     if (filter === 'all') return true
-    return todo.status === filter
+    if (filter === 'active') return todo.status === 'pending'
+    if (filter === 'completed') return todo.status === 'completed'
+    return true
   })
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'error'
-      case 'medium': return 'warning'
-      case 'low': return 'success'
-      default: return 'default'
+      case 'high': return '#ef4444'
+      case 'medium': return '#f59e0b'
+      case 'low': return '#10b981'
+      default: return '#9c27b0'
     }
   }
 
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'high': return '高'
+      case 'medium': return '中'
+      case 'low': return '低'
+      default: return priority
+    }
+  }
+
+  const formatDateLabel = (dateStr: string) => {
+    const date = new Date(dateStr)
+    if (isToday(date)) return '今天'
+    if (isTomorrow(date)) return '明天'
+    return format(date, 'M月d日', { locale: zhCN })
+  }
+
+  const pendingTodos = filteredTodos.filter(t => t.status === 'pending')
+  const completedTodos = filteredTodos.filter(t => t.status === 'completed')
+
   if (loading) {
-    return <Typography>加载中...</Typography>
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <Typography variant="h6" color="text.secondary">加载中...</Typography>
+      </Box>
+    )
   }
 
   return (
-    <>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 0 } }}>
-        <Typography variant="h4" sx={{ fontSize: { xs: '1.75rem', md: '2rem' } }}>待办事项</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ width: { xs: '100%', sm: 'auto' } }}
+    <Box sx={{ pb: 10 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            fontWeight: 800, 
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            mb: 1
+          }}
         >
-          新建
-        </Button>
+          待办事项
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {pendingTodos.length} 个任务待完成
+        </Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
 
-      <Box sx={{ mb: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>筛选</InputLabel>
-          <Select value={filter} label="筛选" onChange={(e) => setFilter(e.target.value)}>
-            <MenuItem value="all">全部</MenuItem>
-            <MenuItem value="pending">待完成</MenuItem>
-            <MenuItem value="completed">已完成</MenuItem>
-          </Select>
-        </FormControl>
+      {/* Filter Tabs */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+        {['all', 'active', 'completed'].map((filterValue) => (
+          <Chip
+            key={filterValue}
+            label={filterValue === 'all' ? '全部' : filterValue === 'active' ? '待完成' : '已完成'}
+            onClick={() => setFilter(filterValue)}
+            variant={filter === filterValue ? 'filled' : 'outlined'}
+            color={filter === filterValue ? 'primary' : 'default'}
+            sx={{ fontWeight: 600 }}
+          />
+        ))}
       </Box>
 
-      {filteredTodos.length === 0 ? (
-        <Paper sx={{ p: { xs: 2, md: 3 }, textAlign: 'center' }}>
-          <Typography color="text.secondary">暂无待办事项</Typography>
+      {/* Empty State */}
+      {filteredTodos.length === 0 && (
+        <Paper 
+          sx={{ 
+            p: 6, 
+            textAlign: 'center',
+            borderRadius: 4,
+            background: 'rgba(156, 39, 176, 0.05)',
+            border: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+            {filter === 'completed' ? '还没有完成的任务' : '暂无待办事项'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            点击下方按钮添加新任务
+          </Typography>
         </Paper>
-      ) : (
-        <List sx={{ px: { xs: 0, sm: 0 } }}>
-          {filteredTodos.map((todo) => (
-            <ListItem
-              key={todo.id}
-              sx={{
-                bgcolor: 'background.paper',
-                mb: 1,
-                borderRadius: 2,
-                opacity: todo.status === 'completed' ? 0.6 : 1,
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'flex-start', sm: 'center' },
-                py: { xs: 2, sm: 1 },
-              }}
-              secondaryAction={
-                <Box sx={{ display: 'flex', gap: 0.5, position: { xs: 'static', sm: 'absolute' }, right: { sm: 16 }, mt: { xs: 1, sm: 0 } }}>
-                  <IconButton onClick={() => handleOpenDialog(todo)} size="small">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(todo.id)} size="small">
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
-              }
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: { xs: 1, sm: 0 } }}>
-                <Checkbox
-                  checked={todo.status === 'completed'}
-                  onChange={() => handleToggleStatus(todo)}
-                />
-                <ListItemText
-                  primary={todo.title}
-                  sx={{ '& .MuiListItemText-primary': { fontSize: { xs: '0.95rem', md: '1rem' } } }}
-                />
-              </Box>
-              {todo.description && (
-                <Typography variant="body2" color="text.secondary" sx={{ ml: { sm: 4 }, mb: { xs: 1, sm: 0.5 } }}>
-                  {todo.description}
-                </Typography>
-              )}
-              <Box sx={{ ml: { sm: 4 }, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                  label={todo.priority}
-                  color={getPriorityColor(todo.priority)}
-                  size="small"
-                />
-                {todo.dueDate && (
-                  <Chip
-                    label={format(new Date(todo.dueDate), 'yyyy-MM-dd')}
-                    size="small"
-                    variant="outlined"
-                  />
-                )}
-              </Box>
-            </ListItem>
-          ))}
-        </List>
       )}
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
-        <DialogTitle>{editingTodo ? '编辑待办' : '新建待办'}</DialogTitle>
+      {/* Todo Cards - Pending */}
+      {pendingTodos.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          {filter !== 'completed' && (
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 2, fontWeight: 700 }}>
+              待完成
+            </Typography>
+          )}
+          <AnimatePresence>
+            {pendingTodos.map((todo, index) => (
+              <motion.div
+                key={todo.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <Paper
+                  sx={{
+                    mb: 2,
+                    p: 3,
+                    borderRadius: 3,
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '&:hover': {
+                      boxShadow: '0 4px 20px rgba(156, 39, 176, 0.1)',
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <IconButton
+                      onClick={() => handleToggleStatus(todo)}
+                      sx={{
+                        mt: -0.5,
+                        color: 'primary.main',
+                        '&:hover': { bgcolor: 'primary.light' }
+                      }}
+                    >
+                      <RadioButtonUncheckedIcon sx={{ fontSize: 28 }} />
+                    </IconButton>
+                    
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          mb: 0.5,
+                          wordBreak: 'break-word'
+                        }}
+                      >
+                        {todo.title}
+                      </Typography>
+                      
+                      {todo.description && (
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ mb: 1.5, lineHeight: 1.6 }}
+                        >
+                          {todo.description}
+                        </Typography>
+                      )}
+
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Chip
+                          icon={<PriorityHighIcon sx={{ fontSize: 16 }} />}
+                          label={getPriorityLabel(todo.priority)}
+                          size="small"
+                          sx={{
+                            bgcolor: `${getPriorityColor(todo.priority)}15`,
+                            color: getPriorityColor(todo.priority),
+                            fontWeight: 600,
+                            border: `1px solid ${getPriorityColor(todo.priority)}40`
+                          }}
+                        />
+                        
+                        {todo.dueDate && (
+                          <Chip
+                            icon={<CalendarTodayIcon sx={{ fontSize: 16 }} />}
+                            label={formatDateLabel(todo.dueDate)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 0.5, flexDirection: { xs: 'column', sm: 'row' } }}>
+                      <IconButton
+                        onClick={() => handleOpenDialog(todo)}
+                        size="small"
+                        sx={{ color: 'text.secondary' }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => handleDelete(todo.id)}
+                        size="small"
+                        sx={{ color: 'error.main' }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Paper>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </Box>
+      )}
+
+      {/* Divider */}
+      {pendingTodos.length > 0 && completedTodos.length > 0 && filter === 'all' && (
+        <Divider sx={{ my: 3 }} />
+      )}
+
+      {/* Todo Cards - Completed */}
+      {completedTodos.length > 0 && filter !== 'active' && (
+        <Box>
+          {filter === 'all' && (
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 2, fontWeight: 700 }}>
+              已完成 ({completedTodos.length})
+            </Typography>
+          )}
+          <AnimatePresence>
+            {completedTodos.map((todo, index) => (
+              <motion.div
+                key={todo.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <Paper
+                  sx={{
+                    mb: 2,
+                    p: 3,
+                    borderRadius: 3,
+                    opacity: 0.7,
+                    bgcolor: 'background.default',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <IconButton
+                      onClick={() => handleToggleStatus(todo)}
+                      sx={{
+                        mt: -0.5,
+                        color: 'success.main'
+                      }}
+                    >
+                      <CheckCircleIcon sx={{ fontSize: 28 }} />
+                    </IconButton>
+                    
+                    <Box sx={{ flex: 1 }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          textDecoration: 'line-through',
+                          opacity: 0.6
+                        }}
+                      >
+                        {todo.title}
+                      </Typography>
+                    </Box>
+
+                    <IconButton
+                      onClick={() => handleDelete(todo.id)}
+                      size="small"
+                      sx={{ color: 'error.main' }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Paper>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </Box>
+      )}
+
+      {/* FAB Button */}
+      <Fab
+        color="primary"
+        aria-label="add"
+        onClick={() => handleOpenDialog()}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          boxShadow: '0 4px 20px rgba(156, 39, 176, 0.4)',
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      {/* Dialog */}
+      <Dialog 
+        open={dialogOpen} 
+        onClose={handleCloseDialog}
+        fullWidth
+        maxWidth="sm"
+        sx={{ '& .MuiDialog-paper': { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.5rem' }}>
+          {editingTodo ? '编辑任务' : '新建任务'}
+        </DialogTitle>
         <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+          
           <TextField
             fullWidth
-            label="标题"
+            label="任务标题"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             margin="normal"
             required
+            autoFocus
           />
           <TextField
             fullWidth
-            label="描述"
+            label="任务描述"
             multiline
             rows={3}
             value={formData.description}
@@ -285,9 +503,24 @@ export default function TodosPage() {
               label="优先级"
               onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
             >
-              <MenuItem value="low">低</MenuItem>
-              <MenuItem value="medium">中</MenuItem>
-              <MenuItem value="high">高</MenuItem>
+              <MenuItem value="high">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ef4444' }} />
+                  高优先级
+                </Box>
+              </MenuItem>
+              <MenuItem value="medium">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#f59e0b' }} />
+                  中优先级
+                </Box>
+              </MenuItem>
+              <MenuItem value="low">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#10b981' }} />
+                  低优先级
+                </Box>
+              </MenuItem>
             </Select>
           </FormControl>
           <TextField
@@ -302,13 +535,22 @@ export default function TodosPage() {
             }}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog} sx={{ width: { xs: '100%', sm: 'auto' } }}>取消</Button>
-          <Button onClick={handleSubmit} variant="contained" sx={{ width: { xs: '100%', sm: 'auto' } }}>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button 
+            onClick={handleCloseDialog}
+            sx={{ borderRadius: 2 }}
+          >
+            取消
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            sx={{ borderRadius: 2, minWidth: 100 }}
+          >
             {editingTodo ? '保存' : '创建'}
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </Box>
   )
 }

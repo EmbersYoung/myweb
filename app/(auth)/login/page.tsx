@@ -37,6 +37,7 @@ export default function LoginPage() {
       }
 
       router.push('/')
+      router.refresh()
     } catch (err) {
       setError('登录失败，请重试')
     } finally {
