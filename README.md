@@ -1,36 +1,143 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyWeb - 个人主页系统
 
-## Getting Started
+一个基于 Next.js + Supabase 的个人主页系统，包含待办事项、习惯打卡、日常记录等功能。
 
-First, run the development server:
+## 功能特性
+
+- ✅ 待办事项管理（创建、编辑、删除、优先级、截止日期）
+- ✅ 习惯打卡（每日打卡、连续天数统计、可视化图表）
+- ✅ 日常记录（日记、备忘录、心情、标签）
+- ✅ 数据导入导出（JSON格式）
+- ✅ 深色模式切换
+- ✅ PWA支持
+- ✅ Material Design UI
+
+## 技术栈
+
+- **前端**: Next.js 16, React 19, Material UI, Tailwind CSS
+- **后端**: Next.js API Routes
+- **数据库**: Neon PostgreSQL (Serverless)
+- **ORM**: Prisma
+- **认证**: 自定义认证 (bcryptjs + cookies)
+- **部署**: Vercel
+
+## 快速开始
+
+### 1. 配置环境变量
+
+复制 `.env.example` 为 `.env.local`：
+
+```bash
+cp .env.example .env.local
+```
+
+在 `.env.local` 中配置数据库连接：
+
+```env
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 2. 安装依赖
+
+```bash
+npm install
+```
+
+### 3. 初始化数据库
+
+```bash
+npx prisma migrate dev --name init
+npx prisma generate
+```
+
+### 4. 启动开发服务器
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 项目结构
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+myweb/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # 认证相关页面
+│   ├── (dashboard)/       # 主功能区
+│   ├── api/               # API路由
+│   ├── layout.tsx         # 全局布局
+│   └── page.tsx           # 首页
+├── components/            # React组件
+│   └── ThemeRegistry.tsx  # Material UI主题
+├── lib/                   # 工具库
+│   ├── db.ts             # Prisma客户端
+│   └── supabase.ts       # Supabase客户端
+├── prisma/                # Prisma配置
+│   └── schema.prisma     # 数据库模型
+├── types/                 # TypeScript类型定义
+├── .env.example          # 环境变量模板
+├── DESIGN.md             # 详细设计文档
+└── README.md             # 项目说明
+```
 
-## Learn More
+## 数据库模型
 
-To learn more about Next.js, take a look at the following resources:
+- **Users**: 用户表（id, email, username, passwordHash）
+- **Todos**: 待办事项（title, status, priority, dueDate）
+- **Habits**: 习惯目标（name, icon, targetFrequency）
+- **HabitRecords**: 打卡记录（habitId, completedAt）
+- **JournalEntries**: 日常记录（content, mood, tags）
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API接口
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/api/auth/*` - 认证接口（注册、登录、登出）
+- `/api/todos/*` - 待办事项CRUD
+- `/api/habits/*` - 习惯打卡管理
+- `/api/journal/*` - 日常记录管理
+- `/api/export/*` - 数据导入导出
 
-## Deploy on Vercel
+## 部署到 Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# 安装 Vercel CLI
+npm install -g vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# 登录
+vercel login
+
+# 部署
+vercel
+
+# 配置环境变量（在 Vercel Dashboard）
+# 然后生产部署
+vercel --prod
+```
+
+## 开发进度
+
+✅ Phase 1: 项目初始化
+- Next.js 项目创建
+- Material UI 主题配置
+- 深色模式支持
+- 基础页面框架
+
+🚧 Phase 2-6: 核心功能开发
+- 用户认证
+- 待办事项管理
+- 习惯打卡
+- 日常记录
+- 数据导入导出
+
+## 环境要求
+
+- Node.js 18+
+- npm 9+
+- Neon PostgreSQL 数据库（免费）
+- Vercel 账号（免费）
+
+## 许可证
+
+MIT
