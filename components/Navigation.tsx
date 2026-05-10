@@ -23,6 +23,7 @@ import HomeIcon from '@mui/icons-material/Home'
 import Brightness4Icon from '@mui/icons-material/Brightness4'
 import Brightness7Icon from '@mui/icons-material/Brightness7'
 import MenuIcon from '@mui/icons-material/Menu'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import Avatar from '@mui/material/Avatar'
 import Menu from '@mui/material/Menu'
@@ -67,7 +68,6 @@ export default function Navigation() {
     { text: '待办事项', icon: <AssignmentIcon />, path: '/todos' },
     { text: '习惯打卡', icon: <FitnessCenterIcon />, path: '/habits' },
     { text: '日常记录', icon: <BookIcon />, path: '/journal' },
-    { text: '设置', icon: <SettingsIcon />, path: '/settings' },
   ]
 
   const handleDrawerToggle = () => {
@@ -78,11 +78,19 @@ export default function Navigation() {
     router.push('/login')
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggedIn(false)
     setUser(null)
     setAnchorEl(null)
+    
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (err) {
+      console.error('登出失败:', err)
+    }
+    
     router.push('/')
+    router.refresh()
   }
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {

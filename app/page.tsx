@@ -74,6 +74,10 @@ export default function HomePage() {
             variant="contained"
             size="large"
             startIcon={<FaRocket />}
+            onClick={() => {
+              const element = document.getElementById('projects')
+              element?.scrollIntoView({ behavior: 'smooth' })
+            }}
             sx={{
               background: 'linear-gradient(135deg, #9c27b0 0%, #7c4dff 100%)',
               px: 4,

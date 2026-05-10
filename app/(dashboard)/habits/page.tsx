@@ -23,7 +23,8 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, isToday } from 'date-fns'
+import { useRouter } from 'next/navigation'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { zhCN } from 'date-fns/locale'
 
 interface Habit {
@@ -38,6 +39,7 @@ interface Habit {
 }
 
 export default function HabitsPage() {
+  const router = useRouter()
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -191,6 +193,23 @@ export default function HabitsPage() {
 
   return (
     <Box sx={{ pb: 10 }}>
+      {/* Back Button */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/')}
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'primary.main',
+              backgroundColor: 'primary.light',
+            },
+          }}
+        >
+          返回首页
+        </Button>
+      </Box>
+
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography 

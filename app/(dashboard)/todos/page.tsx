@@ -25,11 +25,13 @@ import EditIcon from '@mui/icons-material/Edit'
 import AddIcon from '@mui/icons-material/Add'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
 import { format, isToday, isTomorrow, addDays } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 
 interface Todo {
   id: string
@@ -42,6 +44,7 @@ interface Todo {
 }
 
 export default function TodosPage() {
+  const router = useRouter()
   const [todos, setTodos] = useState<Todo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -241,6 +244,23 @@ export default function TodosPage() {
 
   return (
     <Box sx={{ pb: 10 }}>
+      {/* Back Button */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/')}
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'primary.main',
+              backgroundColor: 'primary.light',
+            },
+          }}
+        >
+          返回首页
+        </Button>
+      </Box>
+
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography 
