@@ -13,7 +13,17 @@ export async function GET() {
 
     const todos = await prisma.todo.findMany({
       where: { userId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        dueDate: true,
+        createdAt: true,
+      },
       orderBy: [
+        { status: 'asc' },
         { priority: 'desc' },
         { createdAt: 'desc' },
       ],

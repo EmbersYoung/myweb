@@ -53,6 +53,8 @@ export default function TodosPage() {
     priority: 'medium',
     dueDate: '',
   })
+  const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export default function TodosPage() {
     }
 
     setError('')
+    setSubmitting(true)
     try {
       const url = editingTodo ? `/api/todos/${editingTodo.id}` : '/api/todos'
       const method = editingTodo ? 'PUT' : 'POST'
@@ -123,40 +126,72 @@ export default function TodosPage() {
         return
       }
 
-      fetchTodos()
+      if (editingTodo) {
+        setTodos(prevTodos => 
+          prevTodos.map(t => 
+            t.id === editingTodo.id ? data.todo : t
+          )
+        )
+      } else {
+        setTodos(prevTodos => [data.todo, ...prevTodos])
+      }
+      
       handleCloseDialog()
     } catch (err) {
       setError('操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleToggleStatus = async (todo: Todo) => {
+    const newStatus = todo.status === 'completed' ? 'pending' : 'completed'
+    
+    setTodos(prevTodos => 
+      prevTodos.map(t => 
+        t.id === todo.id ? { ...t, status: newStatus } : t
+      )
+    )
+    
     try {
-      const newStatus = todo.status === 'completed' ? 'pending' : 'completed'
       const response = await fetch(`/api/todos/${todo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
 
-      if (response.ok) {
-        fetchTodos()
+      if (!response.ok) {
+        setTodos(prevTodos => 
+          prevTodos.map(t => 
+            t.id === todo.id ? { ...t, status: todo.status } : t
+          )
+        )
+        setError('更新状态失败')
       }
     } catch (err) {
+      setTodos(prevTodos => 
+        prevTodos.map(t => 
+          t.id === todo.id ? { ...t, status: todo.status } : t
+        )
+      )
       setError('更新状态失败')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除吗？')) return
-
+    
+    setTodos(prevTodos => prevTodos.filter(t => t.id !== id))
+    
     try {
       const response = await fetch(`/api/todos/${id}`, { method: 'DELETE' })
 
-      if (response.ok) {
+      if (!response.ok) {
         fetchTodos()
+        setError('删除失败')
       }
     } catch (err) {
+      fetchTodos()
       setError('删除失败')
     }
   }
@@ -272,10 +307,10 @@ export default function TodosPage() {
             {pendingTodos.map((todo, index) => (
               <motion.div
                 key={todo.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
               >
                 <Paper
                   sx={{
@@ -364,8 +399,13 @@ export default function TodosPage() {
                         onClick={() => handleDelete(todo.id)}
                         size="small"
                         sx={{ color: 'error.main' }}
+                        disabled={deleting === todo.id}
                       >
-                        <DeleteIcon fontSize="small" />
+                        {deleting === todo.id ? (
+                          <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid', borderColor: 'error.main', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <DeleteIcon fontSize="small" />
+                        )}
                       </IconButton>
                     </Box>
                   </Box>
@@ -393,10 +433,10 @@ export default function TodosPage() {
             {completedTodos.map((todo, index) => (
               <motion.div
                 key={todo.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
               >
                 <Paper
                   sx={{
@@ -545,9 +585,10 @@ export default function TodosPage() {
           <Button 
             onClick={handleSubmit} 
             variant="contained"
+            disabled={submitting}
             sx={{ borderRadius: 2, minWidth: 100 }}
           >
-            {editingTodo ? '保存' : '创建'}
+            {submitting ? '处理中...' : editingTodo ? '保存' : '创建'}
           </Button>
         </DialogActions>
       </Dialog>
